@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Chat</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+  <div id="roomForm">
+    <input type="text" id="roomInput" placeholder="Enter room ID">
+    <button id="joinButton">Join</button>
+  </div>
+  <div id="chatForm" style="display: none;">
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type your message">
+    <button id="sendButton">Send</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const roomForm = document.getElementById('roomForm');
+    const chatForm = document.getElementById('chatForm');
+
+    document.getElementById('joinButton').addEventListener('click', () => {
+      const room = document.getElementById('roomInput').value;
+      socket.emit('joinRoom', room); // 部屋に参加する 'joinRoom' イベントを送信
+      roomForm.style.display = 'none'; // 部屋ID入力フォームを非表示にする
+      chatForm.style.display = 'block'; // チャットフォームを表示する
+    });
+
+    const messagesElement = document.getElementById('messages');
+
+    socket.on('message', (message) => {
+      const messageElement = document.createElement('div');
+      messageElement.textContent = message;
+      messagesElement.appendChild(messageElement);
+    });
+
+    document.getElementById('sendButton').addEventListener('click', () => {
+      const message = document.getElementById('messageInput').value;
+      socket.emit('message', message); // メッセージを送信
+      document.getElementById('messageInput').value = '';
+    });
+  </script>
+</body>
+</html>
