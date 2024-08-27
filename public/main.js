@@ -18,17 +18,14 @@ chatHistory.forEach((msg) => {
   addMessageToChat(msg);
 });
 
-// タイムアウトチェック関数
 function checkTimeout() {
   const timeoutEnd = localStorage.getItem("timeoutEnd");
   if (timeoutEnd) {
     const now = Date.now();
     if (now < timeoutEnd) {
-      // タイムアウト中
       document.getElementById("sendMessageButton").disabled = true;
       return;
     } else {
-      // タイムアウトが終了したので、ボタンを有効にする
       localStorage.removeItem("timeoutEnd");
       document.getElementById("sendMessageButton").disabled = false;
     }
@@ -70,13 +67,14 @@ function sendMessage() {
   socket.emit("new message", fullMessage);
   messageInput.value = "";
 }
+
 document
   .getElementById("sendMessageButton")
   .addEventListener("click", sendMessage);
 
 messageInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-    event.preventDefault(); // Prevents the default action of Enter key
+    event.preventDefault();
     sendMessage();
   }
 });
