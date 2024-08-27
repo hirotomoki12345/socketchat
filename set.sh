@@ -55,10 +55,10 @@ case $option in
         cd socketchat || exit
         npm install
 
-        pm2 start index.js --name socketchat
+        sudo pm2 start index.js --name socketchat
 
-        pm2 startup
-        pm2 save
+        sudo pm2 startup
+        sudo pm2 save
 
         echo "Application is running in the background."
         ;;
