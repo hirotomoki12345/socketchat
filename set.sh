@@ -55,7 +55,7 @@ case $option in
         cd socketchat || exit
         npm install
 
-        pm2 start server.js --name socketchat
+        pm2 start index.js --name socketchat
 
         pm2 startup
         pm2 save
