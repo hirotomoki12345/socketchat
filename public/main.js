@@ -3,6 +3,8 @@ const socket = io();
 const nameInput = document.getElementById("nameInput");
 const messageInput = document.getElementById("messageInput");
 const chat = document.getElementById("chat");
+const sendMessageButton = document.getElementById("sendMessageButton");
+const uploadButton = document.getElementById("uploadButton");
 
 const savedName = localStorage.getItem("chatName");
 if (savedName) {
@@ -23,11 +25,11 @@ function checkTimeout() {
   if (timeoutEnd) {
     const now = Date.now();
     if (now < timeoutEnd) {
-      document.getElementById("sendMessageButton").disabled = true;
+      sendMessageButton.disabled = true;
       return;
     } else {
       localStorage.removeItem("timeoutEnd");
-      document.getElementById("sendMessageButton").disabled = false;
+      sendMessageButton.disabled = false;
     }
   }
 }
@@ -57,7 +59,7 @@ socket.on("error message", (msg) => {
   const now = Date.now();
   const timeoutEnd = now + 60 * 60 * 1000;
   localStorage.setItem("timeoutEnd", timeoutEnd);
-  document.getElementById("sendMessageButton").disabled = true;
+  sendMessageButton.disabled = true;
 });
 
 function sendMessage() {
@@ -65,15 +67,15 @@ function sendMessage() {
   const name = nameInput.value || "Anonymous";
   const fullMessage = {
     name: name,
-    message: message
+    message: message,
   };
+  sendMessageButton.disabled = true; // ボタンを無効化
   socket.emit("new message", fullMessage);
   messageInput.value = "";
+  sendMessageButton.disabled = false; // 送信完了後にボタンを有効化
 }
 
-document
-  .getElementById("sendMessageButton")
-  .addEventListener("click", sendMessage);
+sendMessageButton.addEventListener("click", sendMessage);
 
 messageInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -82,13 +84,15 @@ messageInput.addEventListener("keydown", (event) => {
   }
 });
 
-document.getElementById("uploadButton").addEventListener("click", () => {
+uploadButton.addEventListener("click", () => {
   const fileInput = document.getElementById("fileInput");
   const file = fileInput.files[0];
   const name = nameInput.value || "Anonymous";
   if (file) {
     const formData = new FormData();
     formData.append("file", file);
+
+    uploadButton.disabled = true; // アップロードボタンを無効化
 
     fetch("/upload", {
       method: "POST",
@@ -97,24 +101,27 @@ document.getElementById("uploadButton").addEventListener("click", () => {
       .then((response) => response.json())
       .then((data) => {
         const fileLink = `<a href="${data.url}" download>${data.originalname}</a>`;
-        const fullMessage = `<div class="message"><strong>${name}:</strong> ${fileLink}</div>`;
+        const fullMessage = { name: name, message: fileLink };
         socket.emit("new message", fullMessage);
       })
-      .catch((error) => console.error("Error:", error));
+      .catch((error) => console.error("Error:", error))
+      .finally(() => {
+        uploadButton.disabled = false;
+      });
   }
 });
 
 function addMessageToChat(msg) {
   const messageElement = document.createElement("div");
   messageElement.classList.add("message");
-  messageElement.innerHTML = `<strong>${escapeHtml(msg.name)}:</strong> ${escapeHtml(msg.message)}`;
+  messageElement.innerHTML = `<strong>${escapeHtml(msg.name)}:</strong> ${msg.message}`;
   chat.appendChild(messageElement);
 }
 
 function autoScrollChat() {
-  const chatasdsa = document.getElementById("chat");
-  if (chatasdsa) {
-    chatasdsa.scrollTop = chatasdsa.scrollHeight;
+  const chatElement = document.getElementById("chat");
+  if (chatElement) {
+    chatElement.scrollTop = chatElement.scrollHeight;
   }
 }
 
