@@ -44,9 +44,10 @@ function escapeHtml(unsafe) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"//g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
 
 function determineFileType(fileUrl, originalName) {
   const extension = originalName.split('.').pop().toLowerCase();
