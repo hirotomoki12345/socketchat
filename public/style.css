@@ -12,6 +12,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    margin: 0;
 }
 
 #chatContainer {
@@ -67,6 +68,11 @@ button:hover {
     background-color: #0056b3;
 }
 
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 #chat a {
     color: #007bff;
     text-decoration: none;
@@ -74,6 +80,14 @@ button:hover {
 
 #chat a:hover {
     text-decoration: underline;
+}
+
+img, video {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+    border-radius: 8px;
 }
 
 @media (max-width: 600px) {
