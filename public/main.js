@@ -35,32 +35,38 @@ function checkTimeout() {
   }
 }
 
-// 初期タイムアウトチェック
 checkTimeout();
 
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 socket.on("new message", (msg) => {
-  chatHistory.push(msg);
+  chatHistory.push(escapeHtml(msg));
   localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
   addMessageToChat(msg);
 });
 
 socket.on("error message", (msg) => {
-  alert(msg); // タイムアウトメッセージを表示
-  // タイムアウト終了時間をローカルストレージに保存
+  alert(msg);
   const now = Date.now();
-  const timeoutEnd = now + 60 * 60 * 1000; // 1時間後
+  const timeoutEnd = now + 60 * 60 * 1000;
   localStorage.setItem("timeoutEnd", timeoutEnd);
   document.getElementById("sendMessageButton").disabled = true;
 });
 
 function sendMessage() {
-  const message = messageInput.value;
-  const name = nameInput.value || "Anonymous";
+  const message = escapeHtml(messageInput.value);
+  const name = escapeHtml(nameInput.value) || "Anonymous";
   const fullMessage = `<div class="message"><strong>${name}:</strong> ${message}</div>`;
   socket.emit("new message", fullMessage);
   messageInput.value = "";
 }
-
 document
   .getElementById("sendMessageButton")
   .addEventListener("click", sendMessage);
@@ -106,4 +112,5 @@ function autoScrollChat() {
     chatasdsa.scrollTop = chatasdsa.scrollHeight;
   }
 }
-window.addEventListener("load", autoScrollChat);
+
+setTimeout(autoScrollChat, 2000);
