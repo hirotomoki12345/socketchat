@@ -44,8 +44,26 @@ function escapeHtml(unsafe) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/"//g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function determineFileType(fileUrl, originalName) {
+  const extension = originalName.split('.').pop().toLowerCase();
+  if (["jpg", "jpeg", "png", "gif", "bmp"].includes(extension)) {
+    return `<img src="${fileUrl}" alt="${escapeHtml(originalName)}" />`;
+  } else if (["mp4", "webm", "ogg"].includes(extension)) {
+    return `<video controls><source src="${fileUrl}" type="video/${extension}">Your browser does not support the video tag.</video>`;
+  } else {
+    return `<a href="${fileUrl}" download>${escapeHtml(originalName)}</a>`;
+  }
+}
+
+function wrapWithLinkIfUrl(message) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return message.replace(urlRegex, (url) => {
+    return `<a href="${url}" target="_blank">${url}</a>`;
+  });
 }
 
 socket.on("new message", (msg) => {
@@ -63,16 +81,16 @@ socket.on("error message", (msg) => {
 });
 
 function sendMessage() {
-  const message = messageInput.value;
+  const message = wrapWithLinkIfUrl(messageInput.value);
   const name = nameInput.value || "Anonymous";
   const fullMessage = {
     name: name,
     message: message,
   };
-  sendMessageButton.disabled = true; // ボタンを無効化
+  sendMessageButton.disabled = true;
   socket.emit("new message", fullMessage);
   messageInput.value = "";
-  sendMessageButton.disabled = false; // 送信完了後にボタンを有効化
+  sendMessageButton.disabled = false;
 }
 
 sendMessageButton.addEventListener("click", sendMessage);
@@ -92,7 +110,7 @@ uploadButton.addEventListener("click", () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    uploadButton.disabled = true; // アップロードボタンを無効化
+    uploadButton.disabled = true;
 
     fetch("/upload", {
       method: "POST",
@@ -100,13 +118,13 @@ uploadButton.addEventListener("click", () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        const fileLink = `<a href="${data.url}" download>${data.originalname}</a>`;
-        const fullMessage = { name: name, message: fileLink };
+        const formattedMessage = determineFileType(data.url, data.originalname);
+        const fullMessage = { name: name, message: formattedMessage };
         socket.emit("new message", fullMessage);
       })
       .catch((error) => console.error("Error:", error))
       .finally(() => {
-        uploadButton.disabled = false;
+        uploadButton.disabled = false; 
       });
   }
 });
