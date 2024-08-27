@@ -21,7 +21,6 @@ body {
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -31,6 +30,7 @@ body {
     padding: 20px;
     overflow-y: auto;
     border-bottom: 1px solid #ddd;
+    max-height: 500px;
 }
 
 .message {
