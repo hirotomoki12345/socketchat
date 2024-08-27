@@ -5,41 +5,77 @@ const messageInput = document.getElementById("messageInput");
 const chat = document.getElementById("chat");
 const sendMessageButton = document.getElementById("sendMessageButton");
 const uploadButton = document.getElementById("uploadButton");
+const fileInput = document.getElementById("fileInput");
 
-const savedName = localStorage.getItem("chatName");
-if (savedName) {
-  nameInput.value = savedName;
+function saveMessageToLocalStorage(message) {
+  let chatHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
+  chatHistory = chatHistory.filter(msg => msg.id !== message.id);
+  chatHistory.push(message);
+  localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
 }
 
-nameInput.addEventListener("input", () => {
-  localStorage.setItem("chatName", nameInput.value);
-});
+function loadChatHistory() {
+  const chatHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
+  chatHistory.forEach(addMessageToChat);
+  autoScrollChat();
+}
 
-const chatHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
-chatHistory.forEach((msg) => {
-  addMessageToChat(msg);
-});
+function sendMessage() {
+  const message = {
+    id: generateUniqueId(),
+    name: nameInput.value || "Anonymous",
+    text: wrapWithLinkIfUrl(messageInput.value),
+    timestamp: Date.now()
+  };
 
-function checkTimeout() {
-  const timeoutEnd = localStorage.getItem("timeoutEnd");
-  if (timeoutEnd) {
-    const now = Date.now();
-    if (now < timeoutEnd) {
-      sendMessageButton.disabled = true;
-      return;
-    } else {
-      localStorage.removeItem("timeoutEnd");
-      sendMessageButton.disabled = false;
-    }
+  saveMessageToLocalStorage(message);
+  socket.emit("new message", message);
+  messageInput.value = "";
+  autoScrollChat();
+}
+
+uploadButton.addEventListener("click", () => {
+  const file = fileInput.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64Data = reader.result.split(',')[1];
+      const fileData = {
+        id: generateUniqueId(),
+        data: base64Data,
+        name: file.name,
+        type: file.type,
+        timestamp: Date.now()
+      };
+
+      saveMessageToLocalStorage(fileData);
+      socket.emit("new file", fileData);
+    };
+    reader.readAsDataURL(file);
   }
+});
+
+function addMessageToChat(message) {
+  if (document.getElementById(message.id)) return;
+
+  const messageElement = document.createElement("div");
+  messageElement.classList.add("message");
+  messageElement.id = message.id;
+
+  if (message.text) {
+    messageElement.innerHTML = `<strong>${escapeHtml(message.name)}:</strong> ${message.text} <span class="timestamp">${formatTimestamp(message.timestamp)}</span>`;
+  } else if (message.data) {
+    messageElement.innerHTML = determineFileType(message.data, message.name, message.type) + `<span class="timestamp">${formatTimestamp(message.timestamp)}</span>`;
+  }
+  chat.appendChild(messageElement);
 }
 
-checkTimeout();
+function wrapWithLinkIfUrl(message) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return message.replace(urlRegex, (url) => `<a href="${url}" target="_blank">${url}</a>`);
+}
 
 function escapeHtml(unsafe) {
-  if (typeof unsafe !== "string") {
-    return "";
-  }
   return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -48,54 +84,32 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
 
-function determineFileType(fileUrl, originalName) {
-  const extension = originalName.split('.').pop().toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "bmp"].includes(extension)) {
-    return `<img src="${fileUrl}" alt="${escapeHtml(originalName)}" />`;
-  } else if (["mp4", "webm", "ogg"].includes(extension)) {
-    return `<video controls><source src="${fileUrl}" type="video/${extension}">Your browser does not support the video tag.</video>`;
+function determineFileType(fileData, name, type) {
+  if (type.startsWith("image/")) {
+    return `<img src="data:${type};base64,${fileData}" alt="${escapeHtml(name)}" />`;
+  } else if (type.startsWith("video/")) {
+    return `<video controls><source src="data:${type};base64,${fileData}" type="${type}">Your browser does not support the video tag.</video>`;
   } else {
-    return `<a href="${fileUrl}" download>${escapeHtml(originalName)}</a>`;
+    return `<a href="data:${type};base64,${fileData}" download>${escapeHtml(name)}</a>`;
   }
 }
 
-function wrapWithLinkIfUrl(message) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return message.replace(urlRegex, (url) => {
-    return `<a href="${url}" target="_blank">${url}</a>`;
-  });
+function autoScrollChat() {
+  chat.scrollTop = chat.scrollHeight;
 }
 
-socket.on("new message", (msg) => {
-  chatHistory.push(msg);
-  localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
-  addMessageToChat(msg);
-});
-
-socket.on("error message", (msg) => {
-  alert(msg);
-  const now = Date.now();
-  const timeoutEnd = now + 60 * 60 * 1000;
-  localStorage.setItem("timeoutEnd", timeoutEnd);
-  sendMessageButton.disabled = true;
-});
-
-function sendMessage() {
-  const message = wrapWithLinkIfUrl(messageInput.value);
-  const name = nameInput.value || "Anonymous";
-  const fullMessage = {
-    name: name,
-    message: message,
-  };
-  sendMessageButton.disabled = true;
-  socket.emit("new message", fullMessage);
-  messageInput.value = "";
-  sendMessageButton.disabled = false;
+function generateUniqueId() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 sendMessageButton.addEventListener("click", sendMessage);
-
 messageInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -103,45 +117,24 @@ messageInput.addEventListener("keydown", (event) => {
   }
 });
 
-uploadButton.addEventListener("click", () => {
-  const fileInput = document.getElementById("fileInput");
-  const file = fileInput.files[0];
-  const name = nameInput.value || "Anonymous";
-  if (file) {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    uploadButton.disabled = true;
-
-    fetch("/upload", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        const formattedMessage = determineFileType(data.url, data.originalname);
-        const fullMessage = { name: name, message: formattedMessage };
-        socket.emit("new message", fullMessage);
-      })
-      .catch((error) => console.error("Error:", error))
-      .finally(() => {
-        uploadButton.disabled = false; 
-      });
-  }
+socket.on("new message", (message) => {
+  addMessageToChat(message);
 });
 
-function addMessageToChat(msg) {
-  const messageElement = document.createElement("div");
-  messageElement.classList.add("message");
-  messageElement.innerHTML = `<strong>${escapeHtml(msg.name)}:</strong> ${msg.message}`;
-  chat.appendChild(messageElement);
-}
+socket.on("new file", (fileData) => {
+  addMessageToChat(fileData);
+});
 
-function autoScrollChat() {
-  const chatElement = document.getElementById("chat");
-  if (chatElement) {
-    chatElement.scrollTop = chatElement.scrollHeight;
-  }
-}
+socket.on("new client history", (history) => {
+  const localHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
+  const combinedHistory = [...localHistory, ...history];
+  const uniqueHistory = Array.from(new Map(combinedHistory.map(item => [item.id, item])).values());
 
-setTimeout(autoScrollChat, 2000);
+  localStorage.setItem("chatHistory", JSON.stringify(uniqueHistory));
+  loadChatHistory();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadChatHistory();
+  socket.emit("client history", JSON.parse(localStorage.getItem("chatHistory")) || []);
+});
