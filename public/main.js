@@ -47,7 +47,7 @@ function escapeHtml(unsafe) {
 }
 
 socket.on("new message", (msg) => {
-  chatHistory.push(escapeHtml(msg));
+  chatHistory.push(msg);
   localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
   addMessageToChat(msg);
 });
@@ -61,9 +61,12 @@ socket.on("error message", (msg) => {
 });
 
 function sendMessage() {
-  const message = escapeHtml(messageInput.value);
-  const name = escapeHtml(nameInput.value) || "Anonymous";
-  const fullMessage = `<div class="message"><strong>${name}:</strong> ${message}</div>`;
+  const message = messageInput.value;
+  const name = nameInput.value || "Anonymous";
+  const fullMessage = {
+    name: name,
+    message: message
+  };
   socket.emit("new message", fullMessage);
   messageInput.value = "";
 }
@@ -102,7 +105,8 @@ document.getElementById("uploadButton").addEventListener("click", () => {
 
 function addMessageToChat(msg) {
   const messageElement = document.createElement("div");
-  messageElement.innerHTML = msg;
+  messageElement.classList.add("message");
+  messageElement.innerHTML = `<strong>${escapeHtml(msg.name)}:</strong> ${escapeHtml(msg.message)}`;
   chat.appendChild(messageElement);
 }
 
