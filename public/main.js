@@ -67,12 +67,28 @@ function addMessageToChat(message) {
   } else if (message.data) {
     messageElement.innerHTML = determineFileType(message.data, message.name, message.type) + `<span class="timestamp">${formatTimestamp(message.timestamp)}</span>`;
   }
+
+  const idElement = document.createElement("div");
+  idElement.classList.add("message-id");
+  idElement.style.fontSize = "small";
+  idElement.style.color = "gray";
+  idElement.style.display = "none"; 
+  idElement.textContent = `ID: ${message.id}`;
+
+  messageElement.appendChild(idElement);
   chat.appendChild(messageElement);
 }
 
 function wrapWithLinkIfUrl(message) {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return message.replace(urlRegex, (url) => `<a href="${url}" target="_blank">${url}</a>`);
+}
+
+function showIds() {
+  const idElements = document.querySelectorAll(".message-id");
+  idElements.forEach(element => {
+    element.style.display = "block"; 
+  });
 }
 
 function escapeHtml(unsafe) {
