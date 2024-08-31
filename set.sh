@@ -64,6 +64,7 @@ case $option in
         ;;
     2)
         pm2 stop socketchat
+        sudo rm -r socketchat
         echo "$STOP_SUCCESS"
         ;;
     3)
