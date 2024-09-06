@@ -28,6 +28,7 @@ else
     INVALID_OPTION="Invalid option."
 fi
 
+# pm2の確認とインストール
 if ! command -v pm2 &> /dev/null; then
     echo "$INSTALL_PROMPT"
     read -r install_pm2
@@ -41,6 +42,7 @@ if ! command -v pm2 &> /dev/null; then
     fi
 fi
 
+# メニューの表示
 echo "$MENU_TITLE"
 echo "1) $OPTION1"
 echo "2) $OPTION2"
@@ -51,27 +53,25 @@ read -r option
 
 case $option in
     1)
+        
         git clone https://github.com/hirotomoki12345/socketchat.git
         cd socketchat || exit
         npm install
 
-        sudo pm2 start index.js --name socketchat
-
-        sudo pm2 startup
-        sudo pm2 save
+        pm2 start index.js --name socketchat
+        pm2 save
 
         echo "Application is running in the background."
         ;;
     2)
         pm2 stop socketchat
-        sudo rm -r socketchat
         echo "$STOP_SUCCESS"
         ;;
     3)
         pm2 stop socketchat
         pm2 delete socketchat
         cd ..
-        rm -rf socketchat
+        sudo rm -rf socketchat
         echo "$DELETE_SUCCESS"
         ;;
     4)
